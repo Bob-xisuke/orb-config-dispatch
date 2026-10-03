@@ -23,6 +23,9 @@ func NewRouter(st *store.Store) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "database": "ok"})
 	})
 
+	router.POST("/v1/config-rollouts", registerRolloutHandler(st))
+	router.GET("/v1/config-rollouts", listRolloutsHandler(st))
+
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"code": "route_not_found", "message": "no route matches this path"}})
 	})
