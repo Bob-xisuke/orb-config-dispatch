@@ -8,8 +8,8 @@ import (
 	"github.com/Bob-xisuke/orb-config-dispatch/internal/store"
 )
 
-// NewRouter wires the public HTTP surface. Only the health entry is published today; the service
-// contract in README.md describes the error shape every entry must keep.
+// NewRouter wires the public HTTP surface. The service contract in README.md describes the
+// error shape every entry must keep.
 func NewRouter(st *store.Store) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
@@ -17,14 +17,22 @@ func NewRouter(st *store.Store) *gin.Engine {
 
 	router.GET("/healthz", func(c *gin.Context) {
 		if err := st.Ping(); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": gin.H{"code": "storage_unavailable", "message": "database is not available"}})
+			writeError(c, http.StatusServiceUnavailable, codeStorageUnavailable, messageStorageUnavailable)
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "database": "ok"})
 	})
 
+	router.POST("/v1/config-rollouts", registerRollout(st))
+	router.GET("/v1/config-rollouts", listRollouts(st))
+
 	router.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"code": "route_not_found", "message": "no route matches this path"}})
+		writeError(c, http.StatusNotFound, "route_not_found", "no route matches this path")
 	})
 	return router
+}
+
+// writeError emits the shared top-level error object.
+func writeError(c *gin.Context, status int, code, message string) {
+	c.JSON(status, gin.H{"error": gin.H{"code": code, "message": message}})
 }
